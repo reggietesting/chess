@@ -48,7 +48,77 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
     private int currX;
     private int currY;
     
+    // pre condition: valid color provided 
+    // postcondition: gets king of color provided and returns boolean if king is in check;
+    public boolean IsInCheck(boolean color) {
+        Piece placement;
+        boolean FoundKing = false;
+        int kingRow = -1;
+        int kingColumn = -1;
 
+        for (int i = 0; i < 8; i++) {
+            if (FoundKing) {
+                break;
+            }
+            for (int  col = 0; col < 8; col ++) {
+                Square Current = board[i][col];
+                boolean ExistingPiece = Current.isOccupied();
+
+                if (ExistingPiece) {
+                    Piece CurrentPiece = Current.getOccupyingPiece();
+                    
+                    if (CurrentPiece.getColor() == color && CurrentPiece instanceof King) {
+                        placement = CurrentPiece;
+                        FoundKing = true;
+                        kingRow = i;
+                        kingColumn = col;
+                        break;
+                    }
+                }
+
+            }
+        }
+
+        if (FoundKing) {
+            placement = board[kingRow][kingColumn].getOccupyingPiece(); // cz of errors/warns;...
+
+            for (int row = 0; row < 8; row++){
+                for (int column = 0; column < 8; column++) {
+                    Square SquareAt = board[row][column];
+                    boolean isOccupied = SquareAt.isOccupied();
+                    if (!isOccupied || column == kingColumn && row == kingRow) {
+                        continue;
+                    }
+
+                    Piece CoolBen = SquareAt.getOccupyingPiece();
+
+                    if (CoolBen.equals(placement)) { 
+                        continue;
+                    }
+
+                    if (CoolBen.getColor() == color) {
+                        continue;
+                   }
+
+                    ArrayList<Square> Controlled = CoolBen.getControlledSquares(board, board[row][column]);
+
+                    for (int customControlled = 0; customControlled < Controlled.size(); customControlled++) {
+                        Square Custom = Controlled.get(customControlled);
+                        int customColumn = Custom.getCol();
+                        int customRow = Custom.getRow();
+
+                        if (kingRow == customRow && customColumn == kingColumn) {
+                            System.out.println("Is in Check!!!!!");
+                            return true;
+                        }
+                    }
+
+                }
+            }
+        }
+
+        return false;
+    }
     
     public Board(GameWindow g) {
         this.g = g;
@@ -127,10 +197,28 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
             board[((columnIndex==1) ? columnIndex-1 : columnIndex+1)][i%8].put(new Piece(columnIndex != 6, currentEndPoint + pieces.get(imageGet) + ".png"));
         };*/
 
-        board[1][0].put(new Piece(true, RESOURCES_WKING_PNG));
-        board[0][0].put(new Piece(true, RESOURCES_WKING_PNG));
-        board[6][6].put(new Piece(false, RESOURCES_BKING_PNG));
-        board[7][7].put(new Piece(false, RESOURCES_BKING_PNG));
+       // board[1][0].put(new RandomMover(true, RESOURCES_WKING_PNG));
+       // board[0][0].put(new RandomMover(true, RESOURCES_WKING_PNG));
+        
+
+       board[0][0].put(new RandomMover(true, RESOURCES_WPAWN_PNG));
+       board[0][1].put(new ItalianKratos(true, RESOURCES_WKNIGHT_PNG));
+       board[0][2].put(new Bishop(true, RESOURCES_WBISHOP_PNG));
+       board[0][3].put(new Prince(true, RESOURCES_WQUEEN_PNG));
+       board[0][4].put(new King(true, RESOURCES_WKING_PNG));
+       board[0][5].put(new Bishop(true, RESOURCES_WBISHOP_PNG));
+       board[0][6].put(new ItalianKratos(true, RESOURCES_WKNIGHT_PNG));
+       board[0][7].put(new RandomMover(true, RESOURCES_WPAWN_PNG));
+       
+       board[7][0].put(new RandomMover(false, RESOURCES_BPAWN_PNG));
+       board[7][1].put(new ItalianKratos(false, RESOURCES_BKNIGHT_PNG));
+       board[7][2].put(new Bishop(false, RESOURCES_BBISHOP_PNG));
+       board[7][3].put(new Prince(false, RESOURCES_BQUEEN_PNG));
+       board[7][4].put(new King(false, RESOURCES_BKING_PNG));
+       board[7][5].put(new Bishop(false, RESOURCES_BBISHOP_PNG));
+       board[7][6].put(new ItalianKratos(false, RESOURCES_BKNIGHT_PNG));
+       board[7][7].put(new RandomMover(false, RESOURCES_BPAWN_PNG));
+
         //pieces.clear();
     }
     
@@ -231,7 +319,6 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
         for (int i = 0; i < allowedSquares.size(); i++) {
             Square comparison = allowedSquares.get(i);
             if (comparison.getRow() == endSquare.getRow() && comparison.getCol() == endSquare.getCol()) {
-                System.out.println("abc im valid guy");
                 isValid = true;
                 break;
             }
@@ -240,11 +327,51 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
         for (int i = 0; i < controlledSquares.size(); i++) {
             Square comparison = controlledSquares.get(i);
             if (comparison.getRow() == endSquare.getRow() || comparison.getCol() == endSquare.getCol()) {
-                System.out.println("im a possible controlled piece friend.");
                 isValid = true;
                 break;
             }
         }
+
+        /*
+         * idea for makin king mve to places that wouldnt put him in check
+         * iterate through opposite color of units on board; if it's a controlled square then isvalid will becom false; 👀 mad simple
+         */
+
+         Square currentAt = board[endSquare.getRow()][endSquare.getCol()];
+
+         if (currPiece instanceof King ) {
+            boolean CantMove = false;
+            for (int row = 0; row < 8; row++) {
+                for (int column = 0; column < 8; column++) {
+                    Square current = board[row][column];
+
+                    if (!current.isOccupied()) {
+                        continue;
+                    }
+
+                    if (current.getColor() == currPiece.getColor()) {
+                        continue;
+                    }
+
+                    Piece AtRightNow = current.getOccupyingPiece();
+                    ArrayList<Square> Controlled = AtRightNow.getControlledSquares(board, current);
+
+                    for (int index = 0; index < Controlled.size(); index++) {
+                        Square IndexedSquare = Controlled.get(index);
+
+                        if (IndexedSquare.getCol() == currentAt.getCol() && IndexedSquare.getRow() == currentAt.getRow()) {
+                            isValid = false;
+                            CantMove = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (CantMove) {
+                    break;
+                }
+            }
+         }
         
         for(Square [] row: board) {
         	for(Square s: row) {
@@ -254,7 +381,6 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
         	
         }
 
-        Square currentAt = board[endSquare.getRow()][endSquare.getCol()];
 
         if (isValid) {
             fromMoveSquare.removePiece();
@@ -262,6 +388,7 @@ public class Board extends JPanel implements MouseListener, MouseMotionListener 
         }
 
         System.out.println(isValid);
+       // System.out.println(IsInCheck(currentAt.getOccupyingPiece().getColor()));
         fromMoveSquare.setDisplay(true);
         currPiece = null;
         repaint();
